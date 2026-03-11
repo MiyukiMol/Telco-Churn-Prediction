@@ -33,4 +33,4 @@ According to the SHAP analysis, the top 3 drivers for churn are:
 ## 🛠️ How to Run
 1. Clone the repository:
    ```bash
-   git clone [https://github.com/YOUR_USERNAME/Telco-Churn-Prediction.git](https://github.com/YOUR_USERNAME/Telco-Churn-Prediction.git)
+   git clone [https://github.com/MiyukiMol/Telco-Churn-Prediction.git](https://github.com/MiyukiMol/Telco-Churn-Prediction.git)
