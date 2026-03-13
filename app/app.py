@@ -35,6 +35,11 @@ if pipeline is None:
     st.error(f"Model file not found at: {model_path}")
     st.stop()
 
+# セッション状態で履歴を保持する
+# Initialize session state for history to keep data between reruns
+if 'history' not in st.session_state:
+    st.session_state.history = pd.DataFrame()
+
 st.title("📱 Telco Churn Prediction (AI App)")
 st.markdown("This application uses a trained CatBoost Pipeline to predict customer churn risk.")
 
@@ -60,7 +65,7 @@ internet_service = st.sidebar.selectbox("Internet Service", ["Fiber optic", "DSL
 # --- 3. Prediction Logic ---
 st.subheader("Analysis Result")
 
-# 学習時と同じ DataFrame 構造を作成 (features = ['tenure', 'MonthlyCharges', 'TotalCharges', 'Contract', 'PaymentMethod', 'InternetService'])
+# 学習時と同じ DataFrame 構造を作成
 # Create a DataFrame with the exact structure used during training
 input_df = pd.DataFrame({
     'tenure': [tenure],
@@ -77,6 +82,16 @@ if st.button("Run Prediction"):
     prediction = pipeline.predict(input_df)[0]
     probability = pipeline.predict_proba(input_df)[0][1]
 
+    # 履歴保存用のデータを作成
+    # Create a result summary for history tracking
+    new_record = input_df.copy()
+    new_record['Probability'] = f"{probability:.1%}"
+    new_record['Prediction'] = "Churn" if prediction == 1 else "Stay"
+    
+    # 履歴を更新（新しい順に上に表示）
+    # Update history (concatenate new record to the top)
+    st.session_state.history = pd.concat([new_record, st.session_state.history], ignore_index=True)
+
     st.divider()
     
     # 予測結果の表示
@@ -89,6 +104,18 @@ if st.button("Run Prediction"):
         st.success(f"### ✅ Low Churn Risk (Probability: {probability:.1%})")
         st.progress(probability)
         st.write("This customer is likely to remain stable.")
+
+# --- 4. 予測履歴の表示 ---
+# --- 4. Prediction History Display ---
+if not st.session_state.history.empty:
+    st.divider()
+    st.subheader("📊 Prediction History")
+    st.dataframe(st.session_state.history, use_container_width=True)
+    
+    # 履歴のリセットボタン
+    if st.button("Clear History"):
+        st.session_state.history = pd.DataFrame()
+        st.rerun()
 
 # デバッグ用：入力データの確認
 # Debugging: Show the raw input data provided to the model
