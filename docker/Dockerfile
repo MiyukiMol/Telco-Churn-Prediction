@@ -19,9 +19,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app/ ./app/
 COPY models/ ./models/
 
-# 6. Streamlitのデフォルトポート 8501 を開放
-# 6. Expose the default Streamlit port
-EXPOSE 8501
+# 6. Streamlit, FastAPIのデフォルトポート 8501 を開放
+# 6. Expose the default Streamlit and FastAPI port
+EXPOSE 8501 8000
 
 # 7. アプリを起動するコマンド
 # 7. Command to run the Streamlit app when the container starts

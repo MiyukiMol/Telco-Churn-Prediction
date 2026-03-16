@@ -1,6 +1,9 @@
+fastapi
+uvicorn
+streamlit
+google-genai
 pandas
-numpy
+joblib
 scikit-learn
 catboost
-joblib
-streamlit
+requests

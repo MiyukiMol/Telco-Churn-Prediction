@@ -2,10 +2,13 @@ import streamlit as st
 import pandas as pd
 import joblib
 import os
+import requests  # バックエンドと通信するために必要 / Required for backend communication
 
-# --- 【超重要】モデルが探している関数をここで定義する ---
-# --- IMPORTANT: Custom function definition for model loading ---
+# --- 1. モデル読み込み用のカスタム関数 ---
+# --- 1. Custom function for model loading ---
 def add_custom_features(data):
+    # Pipelineが期待する特徴量を計算します
+    # Calculates features expected by the Pipeline
     data = data.copy()
     data['charge_per_tenure'] = data['MonthlyCharges'] / (data['tenure'] + 1)
     return data
@@ -14,13 +17,13 @@ def add_custom_features(data):
 # Page Configuration
 st.set_page_config(page_title="Telco Churn Prediction", layout="wide")
 
-# モデルの読み込み
-# Path to the saved model file
+# モデルの読み込み設定
+# Model loading configuration
 model_path = "models/final_churn_model.joblib"
 
 @st.cache_resource
 def load_model():
-    """Load the trained machine learning pipeline from a joblib file."""
+    """学習済みモデルをロードします / Loads the pre-trained model"""
     if os.path.exists(model_path):
         return joblib.load(model_path)
     return None
@@ -31,12 +34,13 @@ if pipeline is None:
     st.error(f"Model file not found at: {model_path}")
     st.stop()
 
-# セッション状態で履歴を保持する
+# セッション状態で履歴を保持
+# Maintain prediction history in session state
 if 'history' not in st.session_state:
     st.session_state.history = pd.DataFrame()
 
 st.title("📱 Telco Churn Prediction (AI App)")
-st.markdown("This application uses a trained CatBoost Pipeline to predict customer churn risk.")
+st.markdown("This application uses a trained CatBoost Pipeline and Gemini AI for analysis.")
 
 # --- 2. 入力フォーム (サイドバー) ---
 # --- 2. Input Form (Sidebar) ---
@@ -51,82 +55,102 @@ payment_method = st.sidebar.selectbox("Payment Method", [
 internet_service = st.sidebar.selectbox("Internet Service", ["Fiber optic", "DSL", "No"])
 
 # --- 3. 予測実行 ---
-# --- 3. Prediction Logic ---
+# --- 3. Prediction Execution ---
 st.subheader("Analysis Result")
 
-input_df = pd.DataFrame({
-    'tenure': [tenure],
-    'MonthlyCharges': [monthly_charges],
-    'TotalCharges': [total_charges],
-    'Contract': [contract],
-    'PaymentMethod': [payment_method],
-    'InternetService': [internet_service]
-})
+# バックエンドに送るためのデータ構造
+# Data structure to send to the backend
+input_data = {
+    'tenure': tenure,
+    'MonthlyCharges': monthly_charges,
+    'TotalCharges': total_charges,
+    'Contract': contract,
+    'PaymentMethod': payment_method,
+    'InternetService': internet_service
+}
 
 if st.button("Run Prediction"):
-    # 予測の実行
-    prediction = pipeline.predict(input_df)[0]
-    probability = pipeline.predict_proba(input_df)[0][1]
+    # バックエンド(FastAPI)を呼び出して、予測とGeminiのアドバイスを取得
+    # Call backend (FastAPI) to get prediction and Gemini's advice
+    with st.spinner('AI Advisor is thinking...'):
+        try:
+            # Dockerネットワーク内のURLを使用
+            # Use the URL within the Docker network
+            response = requests.post("http://backend:8000/predict", json=input_data)
+            result_json = response.json()
+            
+            prediction = result_json['prediction']
+            probability = result_json['probability']
+            gemini_advice = result_json.get('advice', "No advice available.")
+        except Exception as e:
+            st.error(f"Backend connection error: {e}")
+            # エラー時のフォールバック: ローカルで予測のみ実行
+            # Fallback: Execute local prediction only on error
+            input_df = pd.DataFrame([input_data])
+            prediction = pipeline.predict(input_df)[0]
+            probability = pipeline.predict_proba(input_df)[0][1]
+            gemini_advice = "Could not connect to AI Advisor."
 
-    # 履歴保存
-    new_record = input_df.copy()
+    # 履歴を保存
+    # Save to history
+    new_record = pd.DataFrame([input_data])
     new_record['Probability'] = f"{probability:.1%}"
     new_record['Prediction'] = "Churn" if prediction == 1 else "Stay"
     st.session_state.history = pd.concat([new_record, st.session_state.history], ignore_index=True)
 
     st.divider()
 
-    # --- 🆕 判定結果に基づいてグラフの色を決める ---
-    # --- 🆕 Determine chart color based on prediction results ---
-    # Churn(1)なら赤系、Stay(0)なら青系に設定
-    # Set Red for Churn (1), Blue for Stay (0)
+    # 判定結果に基づいて色を設定
+    # Set color based on the result
     chart_color = "#EF5A5A" if prediction == 1 else "#29B5E8"
 
-    # 特徴量の重要度を取得
-    # Get feature importance from CatBoost
-    raw_importances = pipeline.named_steps['classifier'].get_feature_importance()
-    feature_names = ['tenure', 'MonthlyCharges', 'TotalCharges', 'Contract', 'PaymentMethod', 'InternetService', 'charge_per_tenure']
-    
-    importance_df = pd.DataFrame({
-        'Feature': feature_names,
-        'Importance': raw_importances
-    }).sort_values(by='Importance', ascending=True)
-
-    # レイアウトを2カラムに分割
+    # レイアウト作成
+    # Create layout
     col1, col2 = st.columns([1, 1])
 
     with col1:
         # 予測結果の表示
+        # Display prediction results
         if prediction == 1:
             st.error(f"### ⚠️ High Churn Risk (Probability: {probability:.1%})")
             st.progress(probability)
-            st.write("This customer is likely to churn. Immediate follow-up is recommended.")
         else:
             st.success(f"### ✅ Low Churn Risk (Probability: {probability:.1%})")
             st.progress(probability)
-            st.write("This customer is likely to remain stable.")
+
+        # --- Gemini のアドバイスを表示 ---
+        # --- Display Gemini's Advice ---
+        st.markdown("---")
+        st.subheader("🤖 AI Advisor (Gemini)")
+        st.write(gemini_advice)
 
     with col2:
-        # 判断根拠のグラフ表示（動的な色を適用）
-        # Display Factor Importance with dynamic color
+        # 判断根拠のグラフ表示
+        # Display feature importance chart
         st.write("**🧐 Why did the AI make this decision?**")
+        raw_importances = pipeline.named_steps['classifier'].get_feature_importance()
+        feature_names = ['tenure', 'MonthlyCharges', 'TotalCharges', 'Contract', 'PaymentMethod', 'InternetService', 'charge_per_tenure']
+        
+        importance_df = pd.DataFrame({
+            'Feature': feature_names,
+            'Importance': raw_importances
+        }).sort_values(by='Importance', ascending=True)
+
         st.bar_chart(
             importance_df.set_index('Feature'), 
-            color=chart_color, # ここで色を指定！
+            color=chart_color,
             height=300
         )
-        st.caption("The color represents the current risk level.")
 
 # --- 4. 予測履歴の表示 ---
+# --- 4. Prediction History Display ---
 if not st.session_state.history.empty:
     st.divider()
     st.subheader("📊 Prediction History")
-    st.dataframe(st.session_state.history, use_container_width=True)
+    # 警告を避けるため width="stretch" を使用
+    # Use width="stretch" to avoid warnings
+    st.dataframe(st.session_state.history, width="stretch")
     
     if st.button("Clear History"):
         st.session_state.history = pd.DataFrame()
         st.rerun()
-
-# デバッグ用
-with st.expander("Show input data details"):
-    st.write(input_df)
