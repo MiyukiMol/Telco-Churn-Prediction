@@ -101,7 +101,7 @@ async def predict_churn(customer: CustomerData):
             # Gemini 2.0 Flash を使用して回答を生成
             # Generate response using Gemini 2.0 Flash
             response = client.models.generate_content(
-                model='gemini-2.0-flash', 
+                model='gemini-3.1-flash-lite-preview', 
                 contents=prompt
             )
             advice = response.text
