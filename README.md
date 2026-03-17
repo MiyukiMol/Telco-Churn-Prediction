@@ -38,6 +38,20 @@ The dashboard is designed for clarity, separating the prediction input, statisti
 </div>
 _Main interface showing prediction results and the AI Advisor section._
 
+### 🔍 Deep Dive into AI Advice
+
+![Detailed Advice](./images/dashboard_3.png)
+
+#### 🤖 Example Strategic Insights:
+
+When a customer shows a **64.3% churn risk**, Gemini doesn't just flag it—it provides a multi-layered retention playbook:
+
+1.  **Tech Upgrade:** Migrate DSL users to Fiber at a matched price point to improve "stickiness."
+2.  **Stability Discount:** Offer a "Loyalty Rate Protection" (10-15% off) for a 12-month commitment to secure long-term revenue.
+3.  **Value-Add Audit:** Conduct a "Plan Optimization Audit" to build trust and shift the relationship from _Vendor-Customer_ to _Advisor-Client_.
+
+> **Strategic Conclusion:** Initiating with an audit (trust-building) before pivoting to contractual incentives is recommended to maximize lifetime value.
+
 ## 🛠️ Technical Implementation & Challenges
 
 ### ⚙️ Technology Integration
