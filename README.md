@@ -2,9 +2,13 @@
 
 _An end-to-end Machine Learning project focusing on customer retention, model interpretability, and production-ready deployment._
 
-[![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
-[![CatBoost](https://img.shields.io/badge/Model-CatBoost-ff5a1f?style=flat)](https://catboost.ai/)
-[![SHAP](https://img.shields.io/badge/Interpretability-SHAP-00aff0?style=flat)](https://shap.readthedocs.io/)
+![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-005850?style=for-the-badge&logo=fastapi&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Google Gemini](https://img.shields.io/badge/Google%20Gemini-412991?style=for-the-badge&logo=googlegemini&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)
+![CatBoost](https://img.shields.io/badge/Model-CatBoost-yellow?style=for-the-badge)
+![SHAP](https://img.shields.io/badge/Interpretability-SHAP-blue?style=for-the-badge)
 
 ## 📌 Project Overview
 
