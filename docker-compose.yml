@@ -13,9 +13,9 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    command: streamlit run app/app.py --server.port 8501 --server.address 0.0.0.0
+    command: streamlit run app/app.py --server.port 7860 --server.address 0.0.0.0
     ports:
-      - "8501:8501"
+      - "7860:7860"
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
