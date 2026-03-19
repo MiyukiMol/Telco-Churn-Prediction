@@ -14,6 +14,14 @@ _An end-to-end Machine Learning project focusing on customer retention, model in
 
 The goal of this project is to predict customer churn for a telecommunications company and identify the key drivers behind customer attrition. Using the **IBM Telco Churn dataset**, I developed a high-performance classification model that provides actionable business insights through model interpretability.
 
+### 🏗️ System Architecture
+
+(This diagram is a draft and subject to change during development.)
+
+<p align="center">
+  <img src="./images/architecture.svg" width="800" alt="System Architecture Pipeline">
+</p>
+
 ## 🚀 Key Features
 
 - **Native Categorical Support:** Utilized **CatBoost** to handle categorical features efficiently without manual one-hot encoding.
@@ -96,3 +104,7 @@ According to the SHAP analysis, the top 3 drivers for churn are:
    ```bash
    git clone [https://github.com/MiyukiMol/Telco-Churn-Prediction.git](https://github.com/MiyukiMol/Telco-Churn-Prediction.git)
    ```
+
+```
+
+```

@@ -98,7 +98,7 @@ async def predict_churn(customer: CustomerData):
             Keep the tone professional and the advice practical.
             """
             
-            # Gemini 2.0 Flash を使用して回答を生成
+            # Gemini 3.1 Flash を使用して回答を生成
             # Generate response using Gemini 2.0 Flash
             response = client.models.generate_content(
                 model='gemini-3.1-flash-lite-preview', 
