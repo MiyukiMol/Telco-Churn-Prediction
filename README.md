@@ -16,7 +16,7 @@ The goal of this project is to predict customer churn for a telecommunications c
 
 ### 🏗️ System Architecture
 
-(This diagram is a draft and subject to change during development.)
+(This diagram is a draft and subject to change during development. Created with [Graphviz Online](https://graphvizonline.net/).)
 
 <p align="center">
   <a href="./images/architecture.svg" target="_blank">
@@ -105,10 +105,16 @@ According to the SHAP analysis, the top 3 drivers for churn are:
 ## 🛠️ How to Run
 
 1. Clone the repository:
+
    ```bash
    git clone [https://github.com/MiyukiMol/Telco-Churn-Prediction.git](https://github.com/MiyukiMol/Telco-Churn-Prediction.git)
    ```
 
-```
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-```
+## 📜 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
