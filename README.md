@@ -19,7 +19,7 @@ The goal of this project is to predict customer churn for a telecommunications c
 (This diagram is a draft and subject to change during development.)
 
 <p align="center">
-  <img src="./images/architecture.svg" width="800" alt="System Architecture Pipeline">
+  [<img src="./images/architecture.svg" width="100%">](./images/architecture.svg)
 </p>
 
 ## 🚀 Key Features
