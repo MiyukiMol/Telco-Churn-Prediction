@@ -19,7 +19,11 @@ The goal of this project is to predict customer churn for a telecommunications c
 (This diagram is a draft and subject to change during development.)
 
 <p align="center">
-  [<img src="./images/architecture.svg" width="100%">](./images/architecture.svg)
+  <a href="./images/architecture.svg" target="_blank">
+    <img src="./images/architecture.svg" width="100%" alt="System Architecture">
+  </a>
+  <br>
+  <ins>Click to open in a new tab for high-resolution zoom 🔍</ins>
 </p>
 
 ## 🚀 Key Features
