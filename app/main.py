@@ -1,54 +1,60 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import joblib
 import pandas as pd
 import os
-from google import genai  # 最新のGoogle GenAI SDK / Latest Google GenAI SDK
+import skops.io as sio  # 2026年の標準：セキュリティ重視のSkops
+from google import genai
 import sys
-import app.main as main_module
 
-# --- 1. モデル読み込み用のカスタム関数 ---
-# --- 1. Custom function for model loading ---
+# Custom feature engineering for model pipeline, required during Skops loading.
 def add_custom_features(data):
-    # Pipelineが期待する特徴量エンジニアリングを定義します
-    # Define the feature engineering expected by the Pipeline
+    """
+    Custom feature engineering function required for model loading.
+    This calculates 'charge_per_tenure' and is invoked by the Skops/Pipeline.
+    
+    Args:
+        data (pd.DataFrame): Input customer data.
+    Returns:
+        pd.DataFrame: Data with additional features.
+    """
     data = data.copy()
+    # Add +1 to tenure to avoid division by zero
     data['charge_per_tenure'] = data['MonthlyCharges'] / (data['tenure'] + 1)
     return data
 
+# インポートしたこのファイル自身を「メイン」として認識させる
+sys.modules['__main__'].add_custom_features = add_custom_features
+
 # FastAPIの初期化
-# Initialize FastAPI
-app = FastAPI(title="Telco Churn Prediction API")
+app = FastAPI(
+    title="MiyukiMol AI Platform: Churn Prediction API",
+    description="CatBoostによる予測とGemini 3.1による戦略提案を統合したAPI",
+    version="2.0.0"
+)
 
-# --- 2. モデルとGeminiの設定 ---
-# --- 2. Model and Gemini Configuration ---
-MODEL_PATH = "models/final_churn_model.joblib"
-
-# 環境変数からAPIキーを取得
-# Retrieve API key from environment variables
+# --- 1. モデルとGeminiの設定 ---
+MODEL_PATH = "models/final_churn_model.skops"
 api_key = os.getenv("GEMINI_API_KEY")
-client = None
 
-if api_key:
-    # 最新のGoogle GenAIクライアントを初期化
-    # Initialize the latest Google GenAI client
-    client = genai.Client(api_key=api_key)
-    print("✅ Gemini Client initialized.")
+
+
+# Gemini クライアントの初期化
+client = genai.Client(api_key=api_key) if api_key else None
+
+# モデルのロード (Skops によるセキュアロード)
+pipeline = None
+if os.path.exists(MODEL_PATH):
+    try:
+        # 信頼できる型を自動取得してロード
+        unknown_types = sio.get_untrusted_types(file=MODEL_PATH)
+        pipeline = sio.load(MODEL_PATH, trusted=unknown_types)
+        print(f"✅ Securely loaded model from {MODEL_PATH}")
+    except Exception as e:
+        print(f"❌ Error loading model with Skops: {e}")
 else:
-    print("⚠️ WARNING: GEMINI_API_KEY environment variable is not set.")
+    print(f"⚠️ Model file not found at {MODEL_PATH}")
 
-try:
-    # 保存された学習済みモデルをロード
-    # Load the pre-trained model pipeline
-    sys.modules['__main__'] = main_module
-    pipeline = joblib.load(MODEL_PATH)
-    print("✅ Model loaded successfully.")
-except Exception as e:
-    print(f"❌ Error loading model: {e}")
-    pipeline = None
-
-# --- 3. データ形式の定義 (Pydantic) ---
-# --- 3. Data Schema Definition (Pydantic) ---
+# --- 2. データ形式の定義 (Pydantic) ---
 class CustomerData(BaseModel):
     tenure: int
     MonthlyCharges: float
@@ -57,67 +63,67 @@ class CustomerData(BaseModel):
     PaymentMethod: str
     InternetService: str
 
-# --- 4. 予測 & AIアドバイスのエンドポイント ---
-# --- 4. Prediction & AI Advice Endpoint ---
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "tenure": 1,
+                "MonthlyCharges": 70.0,
+                "TotalCharges": 70.0,
+                "Contract": "Month-to-month",
+                "PaymentMethod": "Electronic check",
+                "InternetService": "Fiber optic"
+            }
+        }
+
+# --- 3. エンドポイントの実装 ---
+
 @app.post("/predict")
 async def predict_churn(customer: CustomerData):
     if pipeline is None:
-        raise HTTPException(status_code=500, detail="Model not loaded")
+        raise HTTPException(status_code=500, detail="Prediction engine is offline.")
 
-    # 入力データをDataFrameに変換
-    # Convert input data to DataFrame
-    input_dict = customer.dict()
-    input_df = pd.DataFrame([input_dict])
+    # 1. データ変換と予測
+    input_df = pd.DataFrame([customer.dict()])
     
-    # 1. 解約予測の実行
-    # 1. Execute Churn Prediction
-    prediction = int(pipeline.predict(input_df)[0])
+    # しきい値 0.45 を適用して判定
     probability = float(pipeline.predict_proba(input_df)[0][1])
+    prediction = 1 if probability > 0.45 else 0
 
-    # 2. Gemini による具体的な対策案の生成
-    # 2. Generate specific retention strategies using Gemini
-    advice = "No advice generated."
+    # 2. Gemini による戦略アドバイスの生成
+    advice = "No advice requested for low-risk customers."
     
-    # 解約リスクが高い場合(1)、かつクライアントが準備できている場合に実行
-    # Execute only if prediction is 1 (High Risk) and client is initialized
-    if prediction == 1 and client: 
-        try:
-            # プロンプトの定義
-            # Define the prompt
-            prompt = f"""
-            You are a customer retention expert for a telecom company.
-            A customer has been identified with a {probability:.1%} churn risk.
-            
-            Customer Profile:
-            - Tenure: {customer.tenure} months
-            - Monthly Charges: ${customer.MonthlyCharges}
-            - Contract: {customer.Contract}
-            - Internet Service: {customer.InternetService}
+    if prediction == 1:
+        if not client:
+            advice = "Strategic advice is unavailable (API Key missing)."
+        else:
+            try:
+                prompt = f"""
+                You are a senior customer retention consultant. 
+                A customer has a {probability:.1%} churn risk. 
+                Profile: {customer.dict()}
+                
+                Provide 3 high-impact, actionable retention strategies in English. 
+                Focus on the 'Contract' and 'MonthlyCharges' aspects.
+                Keep it concise and professional.
+                """
+                response = client.models.generate_content(
+                    model='gemini-3.1-flash-lite-preview', 
+                    contents=prompt
+                )
+                advice = response.text
+            except Exception as e:
+                advice = f"Consultant AI is busy: {str(e)}"
 
-            Please provide 3 specific, professional, and actionable suggestions in English to prevent this customer from leaving.
-            Keep the tone professional and the advice practical.
-            """
-            
-            # Gemini 3.1 Flash を使用して回答を生成
-            # Generate response using Gemini 2.0 Flash
-            response = client.models.generate_content(
-                model='gemini-3.1-flash-lite-preview', 
-                contents=prompt
-            )
-            advice = response.text
-        except Exception as e:
-            advice = f"AI Advice is currently unavailable: {str(e)}"
-    elif not client:
-        advice = "Gemini API key is missing. Please set GEMINI_API_KEY."
-
-    # 結果を返す
-    # Return results
     return {
-        "prediction": prediction,
-        "probability": probability,
+        "prediction": "High Risk" if prediction == 1 else "Low Risk",
+        "probability": round(probability, 4),
         "advice": advice
     }
 
 @app.get("/")
-def home():
-    return {"message": "Telco Churn API is running!"}
+def health_check():
+    return {
+        "status": "online",
+        "model_loaded": pipeline is not None,
+        "gemini_active": client is not None
+    }

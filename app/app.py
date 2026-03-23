@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import joblib
+import skops.io as sio
 import os
 import requests  # バックエンドと通信するために必要 / Required for backend communication
 
@@ -19,13 +19,19 @@ st.set_page_config(page_title="Telco Churn Prediction", layout="wide")
 
 # モデルの読み込み設定
 # Model loading configuration
-model_path = "models/final_churn_model.joblib"
+# model_path = "models/final_churn_model.joblib"
+model_path = "models/final_churn_model.skops"
 
 @st.cache_resource
 def load_model():
-    """学習済みモデルをロードします / Loads the pre-trained model"""
+    # """学習済みモデルをロードします / Loads the pre-trained model"""
+    # if os.path.exists(model_path):
+    #     return joblib.load(model_path)
+    """Loads the pre-trained model using Skops / Skopsを使用してモデルをロード"""
     if os.path.exists(model_path):
-        return joblib.load(model_path)
+        # 安全なロードのための設定 / Settings for secure loading
+        unknown_types = sio.get_untrusted_types(file=model_path)
+        return sio.load(model_path, trusted=unknown_types)
     return None
 
 pipeline = load_model()
@@ -76,7 +82,7 @@ if st.button("Run Prediction"):
         try:
             # Dockerネットワーク内のURLを使用
             # Use the URL within the Docker network
-            response = requests.post("http://backend:8000/predict", json=input_data)
+            response = requests.post("http://0.0.0.0:8000/predict", json=input_data)
             result_json = response.json()
             
             prediction = result_json['prediction']
@@ -95,7 +101,8 @@ if st.button("Run Prediction"):
     # Save to history
     new_record = pd.DataFrame([input_data])
     new_record['Probability'] = f"{probability:.1%}"
-    new_record['Prediction'] = "Churn" if prediction == 1 else "Stay"
+    # new_record['Prediction'] = "Churn" if prediction == 1 else "Stay"
+    new_record['Prediction'] = prediction  # "High Risk" または "Low Risk" がそのまま入る
     st.session_state.history = pd.concat([new_record, st.session_state.history], ignore_index=True)
 
     st.divider()
@@ -111,12 +118,16 @@ if st.button("Run Prediction"):
     with col1:
         # 予測結果の表示
         # Display prediction results
-        if prediction == 1:
+        # 判定結果に基づいて色とメッセージを設定
+        # Set color and message based on the result
+        if prediction == "High Risk": 
             st.error(f"### ⚠️ High Churn Risk (Probability: {probability:.1%})")
             st.progress(probability)
+            chart_color = "#EF5A5A"  # 警告の赤色 / Danger Red
         else:
             st.success(f"### ✅ Low Churn Risk (Probability: {probability:.1%})")
             st.progress(probability)
+            chart_color = "#29B5E8"  # 安心の青色 / Safe Blue
 
         # --- Gemini のアドバイスを表示 ---
         # --- Display Gemini's Advice ---

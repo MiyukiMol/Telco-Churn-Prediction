@@ -29,4 +29,10 @@ EXPOSE 7860
 
 # 7. Streamlitアプリを起動（ポート 7860 を指定）
 # 7. Command to run the Streamlit app on port 7860
-CMD ["streamlit", "run", "app/app.py", "--server.port=7860", "--server.address=0.0.0.0"]
+# CMD ["streamlit", "run", "app/app.py", "--server.port=7860", "--server.address=0.0.0.0"]
+
+# 7. FastAPI と Streamlit を同時に起動
+# 8000番でバックエンドを起動し、その後に 7860番でフロントエンドを起動します
+# 7. Start FastAPI and Streamlit simultaneously
+# Launch the backend on port 8000, followed by the frontend on port 7860
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port 8000 & streamlit run app/app.py --server.port=7860 --server.address=0.0.0.0"]

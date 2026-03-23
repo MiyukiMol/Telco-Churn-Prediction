@@ -102,18 +102,20 @@ According to the SHAP analysis, the top 3 drivers for churn are:
 2. **Internet Service:** Fiber optic users show higher attrition rates compared to DSL users.
 3. **Tenure & Monthly Charges:** The relationship between loyalty and cost is a critical factor.
 
-## 🛠️ How to Run
+## 🛠️ How to Run (Docker)
 
-1. Clone the repository:
+The easiest way to run this application is using Docker. Ensure you have a `.env` file in the root directory with your `GEMINI_API_KEY`.
 
-   ```bash
-   git clone [https://github.com/MiyukiMol/Telco-Churn-Prediction.git](https://github.com/MiyukiMol/Telco-Churn-Prediction.git)
-   ```
+# 1. Setup (Create your own secret key file)
 
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+git clone https://github.com/MiyukiMol/Telco-Churn-Prediction.git
+cd Telco-Churn-Prediction
+echo "GEMINI_API_KEY=your_key_here" > .env
+
+# 2. Build & Run
+
+docker build --no-cache -t churn-app -f docker/Dockerfile .
+docker run -p 7860:7860 -p 8000:8000 --env-file .env churn-app
 
 ## 📜 License
 
